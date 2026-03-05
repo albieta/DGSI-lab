@@ -17,14 +17,10 @@ Explain how the messages array grows during the conversation.
 
 Observations:
 
--   
--   
--   
--   
-
-Example messages array snapshot:
-
-Paste example here
+- 1: 3 elements
+- 2: 5 elements
+- 3: 7 elements
+- 4: 9 elements
 
 ## 1.3 Token Usage Growth
 
@@ -32,9 +28,9 @@ Describe how token usage changes across turns.
 
 Observations:
 
--   prompt_tokens growth:
--   completion_tokens growth:
--   total_tokens behavior:
+-   prompt_tokens growth: 14 | 47 | 1982 | 3977
+-   completion_tokens growth: 88 | 2045 | 4717 | 281
+-   total_tokens behavior: 102 | 2092 | 6699 | 4258
 
 Example usage field:
 
