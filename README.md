@@ -5,7 +5,9 @@ This repository contains the laboratory sessions for the DGSI class.
 
 ## Contributors
 Emma Najera - emma.najera@estudiantat.upc.edu
+
 Pol Plana - pol.plana@estudiantat.upc.edu
+
 Alba Roma - alba.roma@estudiantat.upc.edu
 
 ## Install Script
