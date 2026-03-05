@@ -36,7 +36,7 @@ while True:
         with torch.inference_mode():
             output = model.generate(
                 **inputs,
-                max_new_tokens=200,
+                max_new_tokens=3000,
                 do_sample=True,
                 temperature=0.7,
                 top_p=0.9,
