@@ -408,7 +408,7 @@ What you would do differently next time:
 
 Dependencies:
 
-fastapi uvicorn transformers torch
+uv add -r requirements.txt
 
 Install commands:
 
