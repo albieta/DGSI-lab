@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-MODEL_ID = "Qwen/Qwen3.5-27B" 
+MODEL_ID = "Qwen/Qwen3.5-9B" 
 DEVICE = "cuda"
 DTYPE = torch.bfloat16  # A100 supports BF16 very well
 

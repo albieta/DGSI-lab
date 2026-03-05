@@ -27,7 +27,7 @@ Create Project
 
 ```
 uv init .
-uv add transformers torch
+uv add transformers torch accelerate
 
 # create gpt2_cli.py file with code
 uv run python gpt2_cli.py
