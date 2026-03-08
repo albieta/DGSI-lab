@@ -1,0 +1,702 @@
+<!--
+How to use:
+1) Start your backend server (default expected: http://localhost:8000/v1).
+2) Open this file in a browser (double-click or serve it with a simple local HTTP server).
+3) If opened via file://, your backend may need CORS enabled to allow browser requests.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Local OpenAI Chat UI</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --bg-grad-1: #101935;
+      --bg-grad-2: #17112b;
+      --panel: rgba(12, 18, 36, 0.86);
+      --panel-strong: #111933;
+      --text: #ebf1ff;
+      --muted: #9db0d6;
+      --accent: #4bd1a0;
+      --accent-2: #76b7ff;
+      --border: rgba(155, 176, 214, 0.24);
+      --user: #1f7ae0;
+      --assistant: #264061;
+      --system: #53317f;
+      --error: #7a1f2f;
+      --shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 5%, rgba(118, 183, 255, 0.2), transparent 33%),
+        radial-gradient(circle at 90% 0%, rgba(75, 209, 160, 0.16), transparent 35%),
+        linear-gradient(130deg, var(--bg) 0%, var(--bg-grad-1) 45%, var(--bg-grad-2) 100%);
+      padding: 24px;
+    }
+
+    .shell {
+      max-width: 1080px;
+      margin: 0 auto;
+      min-height: calc(100vh - 48px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .toolbar {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 2fr 1fr auto auto auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input[type="text"], select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(15, 25, 50, 0.82);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input[type="text"]:focus, select:focus, textarea:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(118, 183, 255, 0.16);
+    }
+
+    .toggle-wrap {
+      align-self: center;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .toggle {
+      appearance: none;
+      width: 46px;
+      height: 28px;
+      border-radius: 999px;
+      position: relative;
+      background: #3d4a67;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle::before {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #cfdaf0;
+      transition: transform 0.2s;
+    }
+
+    .toggle:checked {
+      background: linear-gradient(120deg, var(--accent), #2fbaea);
+    }
+
+    .toggle:checked::before {
+      transform: translateX(18px);
+      background: #0a1226;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+      background: linear-gradient(120deg, #1f355f, #2a4b7c);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .btn-accent { background: linear-gradient(120deg, #1f835f, #29b586); }
+    .btn-warn { background: linear-gradient(120deg, #5e2440, #7d2f4f); }
+
+    .status-line {
+      grid-column: 1 / -1;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 1.2em;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      background: #f0a03a;
+      margin-right: 6px;
+      box-shadow: 0 0 12px rgba(240, 160, 58, 0.6);
+    }
+
+    .dot.ok { background: #3fd58f; box-shadow: 0 0 12px rgba(63, 213, 143, 0.62); }
+    .dot.busy { background: #f0a03a; }
+    .dot.err { background: #ff5d6a; }
+
+    .chat {
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .system-wrap {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(17, 26, 50, 0.75);
+    }
+
+    #systemPrompt { min-height: 58px; resize: vertical; }
+
+    .messages {
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      max-width: min(78ch, 92%);
+      border-radius: 14px;
+      padding: 10px 12px;
+      line-height: 1.45;
+      border: 1px solid var(--border);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg .meta {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      opacity: 0.82;
+    }
+
+    .msg.user { margin-left: auto; background: linear-gradient(120deg, #1a4c8a, var(--user)); }
+    .msg.assistant { margin-right: auto; background: linear-gradient(120deg, #223857, var(--assistant)); }
+    .msg.system { margin-right: auto; background: linear-gradient(120deg, #4a2a70, var(--system)); }
+    .msg.error { margin-right: auto; background: linear-gradient(120deg, #662032, var(--error)); border-color: rgba(255, 93, 106, 0.42); }
+
+    .composer {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    #composerInput { min-height: 78px; max-height: 200px; resize: vertical; }
+
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    @media (max-width: 940px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+      .status-line {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .composer {
+        grid-template-columns: 1fr;
+      }
+      .msg { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel toolbar">
+      <div class="field">
+        <label for="baseUrl">API Base URL</label>
+        <input id="baseUrl" type="text" value="http://localhost:8000/v1" spellcheck="false" />
+      </div>
+
+      <div class="field">
+        <label for="modelSelect">Model</label>
+        <select id="modelSelect"></select>
+      </div>
+
+      <button id="loadModelsBtn" type="button">Load Models</button>
+
+      <label class="toggle-wrap" for="streamToggle">
+        <input id="streamToggle" class="toggle" type="checkbox" checked />
+        Streaming
+      </label>
+
+      <button id="clearBtn" class="btn-warn" type="button">Clear Chat</button>
+
+      <div class="status-line">
+        <span id="status"><span class="dot"></span>Idle</span>
+        <span id="statusDetail"></span>
+      </div>
+    </section>
+
+    <section class="panel chat">
+      <div class="system-wrap">
+        <div class="field">
+          <label for="systemPrompt">System Prompt (optional)</label>
+          <textarea id="systemPrompt" spellcheck="false">You are a helpful assistant focused on clear, concise answers.</textarea>
+        </div>
+      </div>
+      <div id="messages" class="messages" aria-live="polite"></div>
+    </section>
+
+    <section class="panel composer">
+      <div>
+        <textarea id="composerInput" placeholder="Write a message. Enter to send, Shift+Enter for newline." spellcheck="true"></textarea>
+        <div class="hint">Enter to send, Shift+Enter for newline</div>
+      </div>
+      <button id="sendBtn" class="btn-accent" type="button">Send</button>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = "local_openai_chat_ui_v1";
+      const DEFAULTS = {
+        baseUrl: "http://localhost:8000/v1",
+        model: "qwen3-1.7b",
+        stream: true,
+        systemPrompt: "You are a helpful assistant focused on clear, concise answers.",
+        history: []
+      };
+
+      const el = {
+        baseUrl: document.getElementById("baseUrl"),
+        modelSelect: document.getElementById("modelSelect"),
+        loadModelsBtn: document.getElementById("loadModelsBtn"),
+        streamToggle: document.getElementById("streamToggle"),
+        clearBtn: document.getElementById("clearBtn"),
+        status: document.getElementById("status"),
+        statusDetail: document.getElementById("statusDetail"),
+        systemPrompt: document.getElementById("systemPrompt"),
+        messages: document.getElementById("messages"),
+        composerInput: document.getElementById("composerInput"),
+        sendBtn: document.getElementById("sendBtn")
+      };
+
+      let state = {
+        inFlight: false,
+        history: [],
+        lastModels: []
+      };
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return { ...DEFAULTS };
+          const parsed = JSON.parse(raw);
+          return {
+            ...DEFAULTS,
+            ...parsed,
+            history: Array.isArray(parsed.history) ? parsed.history.filter(validMessage) : []
+          };
+        } catch {
+          return { ...DEFAULTS };
+        }
+      }
+
+      function saveState() {
+        const data = {
+          baseUrl: el.baseUrl.value.trim(),
+          model: getSelectedModel(),
+          stream: el.streamToggle.checked,
+          systemPrompt: el.systemPrompt.value,
+          history: state.history
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function validMessage(msg) {
+        return msg && (msg.role === "user" || msg.role === "assistant" || msg.role === "system") && typeof msg.content === "string";
+      }
+
+      function autoScroll() {
+        el.messages.scrollTop = el.messages.scrollHeight;
+      }
+
+      function setStatus(kind, text, detail) {
+        const cls = kind === "ok" ? "ok" : kind === "busy" ? "busy" : kind === "err" ? "err" : "";
+        el.status.innerHTML = `<span class="dot ${cls}"></span>${escapeHtml(text || "Idle")}`;
+        el.statusDetail.textContent = detail || "";
+      }
+
+      function setBusy(flag) {
+        state.inFlight = flag;
+        const disabled = !!flag;
+        el.baseUrl.disabled = disabled;
+        el.modelSelect.disabled = disabled;
+        el.loadModelsBtn.disabled = disabled;
+        el.streamToggle.disabled = disabled;
+        el.clearBtn.disabled = disabled;
+        el.systemPrompt.disabled = disabled;
+        el.composerInput.disabled = disabled;
+        el.sendBtn.disabled = disabled;
+        if (disabled) {
+          setStatus("busy", "Generating", "Waiting for model response...");
+        } else {
+          setStatus("ok", "Ready", `${state.history.length} message(s) in history`);
+        }
+      }
+
+      function renderMessages() {
+        el.messages.innerHTML = "";
+        for (const msg of state.history) {
+          appendMessageNode(msg.role, msg.content);
+        }
+        if (state.history.length === 0) {
+          appendMessageNode("system", "Conversation is empty. Send a message to start.");
+        }
+        autoScroll();
+      }
+
+      function appendMessageNode(role, content) {
+        const node = document.createElement("article");
+        node.className = `msg ${role}`;
+        const meta = document.createElement("span");
+        meta.className = "meta";
+        meta.textContent = role;
+        const body = document.createElement("div");
+        body.textContent = content;
+        node.appendChild(meta);
+        node.appendChild(body);
+        el.messages.appendChild(node);
+        return body;
+      }
+
+      function appendError(text) {
+        appendMessageNode("error", text);
+        autoScroll();
+      }
+
+      function getBaseUrl() {
+        return (el.baseUrl.value || DEFAULTS.baseUrl).trim().replace(/\/+$/, "");
+      }
+
+      function getSelectedModel() {
+        return el.modelSelect.value || DEFAULTS.model;
+      }
+
+      function setModelOptions(models, preferred) {
+        const list = Array.isArray(models) ? models : [];
+        state.lastModels = list;
+
+        el.modelSelect.innerHTML = "";
+
+        if (list.length === 0) {
+          const opt = document.createElement("option");
+          opt.value = preferred || DEFAULTS.model;
+          opt.textContent = `${opt.value} (default)`;
+          el.modelSelect.appendChild(opt);
+          return;
+        }
+
+        for (const id of list) {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = id;
+          el.modelSelect.appendChild(opt);
+        }
+
+        const target = preferred && list.includes(preferred) ? preferred : list[0];
+        el.modelSelect.value = target;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      async function loadModels() {
+        if (state.inFlight) return;
+        const baseUrl = getBaseUrl();
+        setStatus("busy", "Connecting", `Fetching models from ${baseUrl}/models`);
+        el.loadModelsBtn.disabled = true;
+
+        try {
+          const res = await fetch(`${baseUrl}/models`, { method: "GET" });
+          if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+          const json = await res.json();
+          const models = Array.isArray(json && json.data)
+            ? json.data.map((m) => m && m.id).filter((id) => typeof id === "string" && id)
+            : [];
+
+          if (models.length === 0) {
+            setModelOptions([], getSelectedModel());
+            setStatus("err", "No models", "Server returned an empty model list");
+            appendError("Model list was empty. You can still try the default model.");
+            return;
+          }
+
+          setModelOptions(models, getSelectedModel());
+          setStatus("ok", "Connected", `Loaded ${models.length} model(s)`);
+          saveState();
+        } catch (err) {
+          const message = err && err.message ? err.message : String(err);
+          setStatus("err", "Connection failed", message);
+          appendError(`Failed to load models: ${message}`);
+        } finally {
+          el.loadModelsBtn.disabled = false;
+        }
+      }
+
+      function buildPayloadMessages() {
+        const payload = [];
+        const systemPrompt = el.systemPrompt.value.trim();
+        if (systemPrompt) {
+          payload.push({ role: "system", content: systemPrompt });
+        }
+        for (const msg of state.history) {
+          if (msg.role === "user" || msg.role === "assistant") {
+            payload.push({ role: msg.role, content: msg.content });
+          }
+        }
+        return payload;
+      }
+
+      async function sendMessage() {
+        if (state.inFlight) return;
+
+        const text = el.composerInput.value;
+        const trimmed = text.trim();
+        if (!trimmed) return;
+
+        const baseUrl = getBaseUrl();
+        const model = getSelectedModel();
+        const stream = el.streamToggle.checked;
+
+        state.history.push({ role: "user", content: trimmed });
+        appendMessageNode("user", trimmed);
+        el.composerInput.value = "";
+        autoScroll();
+        saveState();
+
+        const requestBody = {
+          model,
+          messages: buildPayloadMessages(),
+          stream
+        };
+
+        setBusy(true);
+
+        try {
+          const response = await fetch(`${baseUrl}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody)
+          });
+
+          if (!response.ok) {
+            let detail = "";
+            try {
+              const errJson = await response.json();
+              detail = errJson && errJson.error && errJson.error.message ? errJson.error.message : JSON.stringify(errJson);
+            } catch {
+              detail = await response.text();
+            }
+            throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`);
+          }
+
+          if (!stream) {
+            const json = await response.json();
+            const content = json && json.choices && json.choices[0] && json.choices[0].message
+              ? json.choices[0].message.content
+              : "";
+            const assistantText = typeof content === "string" ? content : "";
+            state.history.push({ role: "assistant", content: assistantText });
+            appendMessageNode("assistant", assistantText || "(Empty response)");
+            saveState();
+            return;
+          }
+
+          if (!response.body) {
+            throw new Error("Streaming response body was empty.");
+          }
+
+          const assistantMsg = { role: "assistant", content: "" };
+          state.history.push(assistantMsg);
+          const assistantBody = appendMessageNode("assistant", "");
+          autoScroll();
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let buffer = "";
+          let done = false;
+
+          while (!done) {
+            const readResult = await reader.read();
+            done = readResult.done;
+            buffer += decoder.decode(readResult.value || new Uint8Array(), { stream: !done });
+
+            const events = buffer.split("\n\n");
+            buffer = events.pop() || "";
+
+            for (const event of events) {
+              const lines = event.split(/\r?\n/);
+              const dataParts = [];
+
+              for (const line of lines) {
+                if (line.startsWith("data:")) {
+                  dataParts.push(line.slice(5).trim());
+                }
+              }
+
+              if (dataParts.length === 0) continue;
+              const data = dataParts.join("\n");
+
+              if (data === "[DONE]") {
+                done = true;
+                break;
+              }
+
+              let parsed;
+              try {
+                parsed = JSON.parse(data);
+              } catch {
+                setStatus("err", "Stream warning", "Skipped an invalid JSON stream chunk");
+                continue;
+              }
+
+              const choice = parsed && parsed.choices && parsed.choices[0] ? parsed.choices[0] : null;
+              const delta = choice && choice.delta ? choice.delta : null;
+              const piece = delta && typeof delta.content === "string" ? delta.content : "";
+
+              if (piece) {
+                assistantMsg.content += piece;
+                assistantBody.textContent = assistantMsg.content;
+                autoScroll();
+              }
+            }
+          }
+
+          saveState();
+        } catch (err) {
+          const message = err && err.message ? err.message : String(err);
+          appendError(`Request failed: ${message}`);
+          setStatus("err", "Request failed", message);
+        } finally {
+          setBusy(false);
+          el.composerInput.focus();
+        }
+      }
+
+      function clearChat() {
+        if (state.inFlight) return;
+        state.history = [];
+        renderMessages();
+        saveState();
+        setStatus("ok", "Cleared", "Conversation history removed");
+      }
+
+      function initFromStored() {
+        const stored = loadState();
+        el.baseUrl.value = stored.baseUrl || DEFAULTS.baseUrl;
+        el.streamToggle.checked = !!stored.stream;
+        el.systemPrompt.value = stored.systemPrompt || DEFAULTS.systemPrompt;
+        state.history = stored.history;
+        setModelOptions([], stored.model || DEFAULTS.model);
+        renderMessages();
+        setStatus("ok", "Ready", `${state.history.length} message(s) in history`);
+      }
+
+      function attachEvents() {
+        el.loadModelsBtn.addEventListener("click", loadModels);
+        el.sendBtn.addEventListener("click", sendMessage);
+        el.clearBtn.addEventListener("click", clearChat);
+
+        el.composerInput.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" && !ev.shiftKey) {
+            ev.preventDefault();
+            sendMessage();
+          }
+        });
+
+        [el.baseUrl, el.modelSelect, el.streamToggle, el.systemPrompt].forEach((node) => {
+          node.addEventListener("change", saveState);
+        });
+
+        el.systemPrompt.addEventListener("input", saveState);
+      }
+
+      function bootstrap() {
+        initFromStored();
+        attachEvents();
+        loadModels();
+        el.composerInput.focus();
+      }
+
+      bootstrap();
+    })();
+  </script>
+</body>
+</html>

@@ -10,5 +10,10 @@
         "ms-toolsai.jupyter"
       ]
     }
+  },
+  "forwardPorts": [8000, 5500],
+  "portsAttributes": {
+    "8000": { "label": "FastAPI" },
+    "5500": { "label": "UI" }
   }
 }

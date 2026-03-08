@@ -38,7 +38,7 @@ client = None
 MODEL = os.getenv("MODEL", "gpt-4.1-mini")
 OPENAI_API_ENDPOINT = os.getenv("OPENAI_API_ENDPOINT")  # Optional: for alternative API endpoints
 
-SYSTEM_PROMPT = "You are a helpful assistant."
+SYSTEM_PROMPT = "You are a professional software developer, and create most efficient code."
 
 
 def show_context(messages: list) -> Panel:
