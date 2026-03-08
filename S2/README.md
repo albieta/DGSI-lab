@@ -57,77 +57,28 @@ Paste system prompt here
 
 ## 2.1 What is the Messages Array?
 
-Explain in your own words:
+El Messages Array es una lista ordenada de objetos JSON en la que cada objeto representa un mensaje dentro de la conversación. Cada mensaje incluye el campo "role", que indica el origen del mensaje (instrucción inicial del sistema, una petición del usuario o una respuesta generada por el modelo) y el campo "content", que contiene el texto del mensaje.
 
--   What the messages array is
--   Why the full conversation history is sent on every request
-
-Explanation:
-
--   
-
-Example structure:
-
-{ "messages": \[ {"role": "system", "content": "..."}, {"role": "user",
-"content": "..."}, {"role": "assistant", "content": "..."} \] }
+Dado que los modelos no disponen de memoria persistente entre llamadas, es necesario enviar el historial de la conversación en cada solicitud a la API. De este modo, en cada petición el modelo recibe el mensaje actual junto con los mensajes anteriores, que se incluyen como contexto para que pueda generar una respuesta coherente.
 
 ## 2.2 Streaming vs Non-Streaming Responses
 
-Explain the difference between streaming and non-streaming responses.
+En modo **non-streaming** ("stream": false), el servidor espera a que el modelo genere la respuesta completa y la devuelve de una sola vez como un objeto JSON. El cliente no recibe nada hasta que la respuesta está terminada.
 
-Non-streaming:
+En modo **streaming** ("stream": true), el servidor envía la respuesta token a token conforme el modelo la va generando, sin esperar a tenerla completa. El cliente recibe pequeños fragmentos (llamados `delta`) y los va mostrando progresivamente.
 
--   
-
-Streaming:
-
--   
-
-Comparison:
-
-  Feature         Non-streaming   Streaming
-  --------------- --------------- -----------
-  Response type                   
-  Latency                         
-  Use cases                       
-
-Example non-streaming response:
-
-Paste response example
-
-Example streaming chunks:
-
-data: {...} data: {...} data: \[DONE\]
 
 ## 2.3 What is Server-Sent Events (SSE)?
 
-Explain SSE and how it is used in LLM APIs.
+SSE es un protocolo web que permite al servidor mantener una conexión HTTP abierta y enviar datos al cliente de forma continua y unidireccional. Cada fragmento de datos se envía como una línea con el formato `data: {...}` seguida de una línea en blanco.
 
-Explanation:
-
--   
-
-How SSE works:
-
--   
-
-Example SSE format:
-
-data: {...}
-
-data: {...}
-
-data: \[DONE\]
+El streaming utiliza SSE para enviar cada token generado como un evento independiente. La secuencia termina con el mensaje especial `data: [DONE]` que indica al cliente que la respuesta ha finalizado.
 
 ## 2.4 Why the OpenAI API Became a Standard
 
-Explain why the OpenAI API format became the de facto standard.
-
-Discussion points:
-
--   
--   
--   
+OpenAI fue el primer proveedor en popularizar masivamente el acceso a modelos de lenguaje a través de una API bien documentada y fácil de usar.
+Ante su éxito, el resto de proveedores decidieron implementar el mismo formato en sus APIs para facilitar la 
+compatibilidad.
 
 ------------------------------------------------------------------------
 
@@ -135,148 +86,99 @@ Discussion points:
 
 ## 3.1 Server Architecture
 
-Describe the overall architecture of your server.
+El servidor está implementado con **FastAPI** y expone una API compatible con la librería `openai`. Su estructura es la siguiente:
 
-Components:
-
--   FastAPI server
--   Model loading
--   Chat completions endpoint
--   Streaming logic
-
-Architecture description:
-
--   
-
-Optional diagram:
-
-Insert architecture diagram if needed
+- **Carga del modelo**: el modelo y el tokenizer se cargan **una sola vez** al arrancar el servidor, usando el mecanismo `lifespan` de FastAPI. Esto evita recargar el modelo en cada petición, lo que sería inviable dado el tamaño del modelo.
+- **Endpoints**:
+  - `GET /v1/models` — devuelve el modelo disponible en formato OpenAI.
+  - `POST /v1/chat/completions` — acepta un array de mensajes y devuelve una respuesta, con soporte para modo streaming y no-streaming.
+- **Validación de requests**: se usan modelos Pydantic para validar el JSON entrante (`model`, `messages`, `temperature`, `top_p`, `max_tokens`, `stream`).
+- **Conteo de tokens**: se usa `inputs.input_ids.shape[-1]` para contar los tokens del prompt, y `len(new_ids)` para los tokens generados.
 
 ------------------------------------------------------------------------
 
-## 3.2 Model Loading
+#### 1. Carga del modelo con `lifespan`
 
-Explain how the Qwen3 model and tokenizer are loaded.
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model, tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_ID,
+        torch_dtype=DTYPE,
+        device_map=DEVICE,
+        low_cpu_mem_usage=True,
+    )
+    model.eval()
+    print("Model ready ✓")
+    yield
+```
 
-Code snippet:
+El modelo se carga una sola vez al arrancar. La palabra clave `global` es necesaria para que las funciones del servidor puedan acceder a las variables `model` y `tokenizer` definidas fuera de `lifespan`.
 
-Paste model loading code
+------------------------------------------------------------------------   
 
-Explanation:
+#### 2. Aplicación del chat template
 
--   
--   
+```python
+def build_prompt(messages: List[Message]) -> str:
+    return tokenizer.apply_chat_template(
+        [m.model_dump() for m in messages],
+        tokenize=False,
+        add_generation_prompt=True,
+        enable_thinking=False,
+    )
+```
 
-------------------------------------------------------------------------
+Este helper convierte el array de mensajes al formato de prompt que espera Qwen3, igual que en `simple-qwen3.py` de la semana anterior.
 
-## 3.3 /v1/models Endpoint
+#### 3. Streaming con `TextIteratorStreamer`
 
-Describe the endpoint that returns the available models.
+```python
+streamer = TextIteratorStreamer(
+    tokenizer, skip_prompt=True, skip_special_tokens=True
+)
+gen_kwargs["streamer"] = streamer
 
-Example response:
+thread = threading.Thread(target=model.generate, kwargs=gen_kwargs, daemon=True)
+thread.start()
 
-{ "object": "list", "data": \[ { "id": "qwen3-1.7b", "object": "model" }
-\] }
+def event_stream():
+    for token in streamer:
+        chunk = { "choices": [{"delta": {"content": token}, "finish_reason": None}] }
+        yield f"data: {json.dumps(chunk)}\n\n"
+    yield "data: [DONE]\n\n"
 
-Implementation snippet:
+return StreamingResponse(event_stream(), media_type="text/event-stream")
+```
 
-Paste code
-
-Explanation:
-
--   
-
-------------------------------------------------------------------------
-
-## 3.4 /v1/chat/completions Endpoint (Non-Streaming)
-
-Describe how the non-streaming completion works.
-
-Request structure:
-
-Paste request example
-
-Response structure:
-
-Paste response example
-
-Implementation snippet:
-
-Paste code
-
-Explanation:
-
--   
-
-------------------------------------------------------------------------
-
-## 3.5 Streaming Implementation
-
-Explain how streaming responses are implemented.
-
-Key components:
-
--   StreamingResponse
--   TextIteratorStreamer
--   SSE formatting
-
-Code snippet:
-
-Paste streaming code
-
-Example stream output:
-
-data: {...}
-
-data: {...}
-
-data: \[DONE\]
-
-Explanation:
-
--   
-
-------------------------------------------------------------------------
-
-## 3.6 Token Counting
-
-Explain how prompt and completion tokens are counted.
-
-Code snippet:
-
-Paste token counting logic
-
-Explanation:
-
--   
+`model.generate()` corre en un hilo de fondo mientras el hilo principal itera sobre los tokens conforme se van generando. Cada token se envía como un evento SSE con el formato `data: {...}\n\n`.
 
 ------------------------------------------------------------------------
 
 ## 3.7 AI Collaboration Log (Vibe Coding Process)
 
-Describe how you used AI tools during development.
+Se utilizó **Claude (Anthropic)** para:
+- Generar el código base del servidor `main.py`.
+- Diagnosticar errores de configuración del entorno.
 
-AI tools used:
+Prompt inicial: Build a FastAPI server that wraps a local Qwen3 1.7B transformers model and exposes an OpenAI-compatible API with:
+* GET /v1/models
+* POST /v1/chat/completions with streaming and non-streaming support using TextIteratorStreamer for token-by-token generation
+You can use this code: from transformers import AutoTokenizer, AutoModelForCausalLM import torch
+MODEL_ID = "Qwen/Qwen3.5-9B" DEVICE = "cuda" DTYPE = torch.bfloat16
+tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+model = AutoModelForCausalLM.from_pretrained( MODEL_ID, torch_dtype=DTYPE, device_map="cuda", low_cpu_mem_usage=True, )
+model.eval() print(f"Qwen CLI on {DEVICE} ({DTYPE}) (Ctrl+C to quit)")
+while True: try: user = input("\n> ").strip() if not user: continue
 
--   
--   
--   
-
-Example prompts you used:
-
-Paste prompts here
-
-What the AI got right:
-
--   
-
-What the AI got wrong:
-
--   
-
-How you fixed issues:
-
--   
+| Problema | Causa | Solución |
+|---|---|---|
+| `ImportError: libcudnn.so.9 not found` | `torch` se instaló con soporte CUDA pero el container no tiene GPU ni librerías CUDA a nivel de sistema | Se reinstalo torch desde el índice CPU (`https://download.pytorch.org/whl/cpu`) |
+| `pyproject.toml` con índice CUDA | Al añadir dependencias nvidia manualmente quedó configurado `[[tool.uv.index]] url = .../cu121` | Se limpió el `pyproject.toml` eliminando todas las dependencias `nvidia-*` y cambiando el índice a CPU |
+| `torch>=2.10.0` no encontrado | La versión 2.10.0 no existe en ningún índice de PyTorch | Se cambió a `torch>=2.0.0` |
+| OOM al cargar Qwen3-1.7B | El container solo tiene 7.5GB de RAM disponibles y el modelo necesita ~4GB, pero Windows consumía el 95% de la RAM total (16GB) | Se usó Qwen3-0.6B (1.5GB) para las pruebas.
 
 ------------------------------------------------------------------------
 
@@ -290,22 +192,70 @@ curl http://localhost:8000/v1/models
 
 Output:
 
-Paste output
+## 4.1 List Models
 
-------------------------------------------------------------------------
+**Comando:**
+```bash
+curl http://localhost:8000/v1/models
+```
+
+**Respuesta:**
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "Qwen/Qwen3-0.6B",
+      "object": "model",
+      "created": 1772931973,
+      "owned_by": "local"
+    }
+  ]
+}
+```
+
+---
 
 ## 4.2 Non-Streaming Completion Test
 
-Command:
+**Comando:**
+```bash
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen3-0.6B",
+    "messages": [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What is FastAPI?"}
+    ],
+    "temperature": 0.7
+  }'
+```
 
-curl http://localhost:8000/v1/chat/completions\
--H "Content-Type: application/json"\
--d '{ "model": "qwen3-1.7b", "messages": \[ {"role": "user", "content":
-"What is FastAPI?"} \] }'
-
-Output:
-
-Paste output
+**Respuesta:**
+```json
+{
+  "id": "chatcmpl-9e3051f4e3dd4cbbacc50b7f4255c1f3",
+  "object": "chat.completion",
+  "created": 1772929983,
+  "model": "Qwen/Qwen3-0.6B",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "FastAPI is a modern, efficient framework for building APIs in Python. It was developed by FastAPI developers, and it provides a simplified and more robust way to build APIs compared to traditional HTTP frameworks like Flask or Django. FastAPI is built on top of the standard library and uses a simple, concise syntax for defining API endpoints. It's known for being fast, secure, and easy to use."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 28,
+    "completion_tokens": 81,
+    "total_tokens": 109
+  }
+}
+```
 
 ------------------------------------------------------------------------
 
@@ -321,7 +271,20 @@ curl http://localhost:8000/v1/chat/completions\
 
 Output:
 
-Paste streaming output
+C:\Windows\System32>curl -N http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" -d "{\"model\": \"Qwen/Qwen3-0.6B\", \"messages\": [{\"role\": \"user\", \"content\": \"Explain Python in one paragraph.\"}], \"stream\": true}"
+data: {"id": "chatcmpl-2197de5780854e78b007876f2155e638", "object": "chat.completion.chunk", "created": 1772930038, "model": "Qwen/Qwen3-0.6B", "choices": [{"index": 0, "delta": {"role": "assistant", "content": ""}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-2197de5780854e78b007876f2155e638", "object": "chat.completion.chunk", "created": 1772930038, "model": "Qwen/Qwen3-0.6B", "choices": [{"index": 0, "delta": {"role": "assistant", "content": "Python "}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-2197de5780854e78b007876f2155e638", "object": "chat.completion.chunk", "created": 1772930038, "model": "Qwen/Qwen3-0.6B", "choices": [{"index": 0, "delta": {"role": "assistant", "content": "is "}, "finish_reason": null}]}
+
+data: {"id": "chatcmpl-2197de5780854e78b007876f2155e638", "object": "chat.completion.chunk", "created": 1772930038, "model": "Qwen/Qwen3-0.6B", "choices": [{"index": 0, "delta": {"role": "assistant", "content": "a "}, "finish_reason": null}]}
+
+    ...
+
+data: {"id": "chatcmpl-2197de5780854e78b007876f2155e638", "object": "chat.completion.chunk", "created": 1772930038, "model": "Qwen/Qwen3-0.6B", "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 19, "completion_tokens": 54, "total_tokens": 73}}
+
+data: [DONE]
 
 ------------------------------------------------------------------------
 
@@ -332,31 +295,16 @@ Configuration used:
 OPENAI_API_KEY=dummy OPENAI_API_ENDPOINT=http://localhost:8000/v1
 MODEL=qwen3-1.7b
 
-Conversation transcript or screenshot:
+![alt text](context_explorer_server.png)
 
-Paste conversation
+![alt text](context_explorer_server-1.png)
 
-Verification:
-
--   Multi-turn conversation works
--   Messages array grows correctly
--   Streaming works
-
+![alt text](context_explorer_server-2.png)
 ------------------------------------------------------------------------
 
 ## 4.5 Issues Encountered and Fixes
 
-Issue 1:
-
-Problem:
-
-Solution:
-
-Issue 2:
-
-Problem:
-
-Solution:
+El `devcontainer.json` usa `mcr.microsoft.com/devcontainers/base:ubuntu-22.04`, una imagen base sin soporte CUDA. Esto obligó a correr el modelo en CPU, lo que limitó el uso a Qwen3-0.6B por restricciones de RAM.
 
 ------------------------------------------------------------------------
 
