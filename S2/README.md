@@ -1,5 +1,12 @@
 ## Week 2 --- OpenAI-Compatible Server & Context Exploration
 
+## Contributors
+Emma Najera - emma.najera@estudiantat.upc.edu
+
+Pol Plana - pol.plana@estudiantat.upc.edu
+
+Alba Roma - alba.roma@estudiantat.upc.edu
+
 # 1. Context Explorer Analysis
 
 For this section, the cloud model used was `z-ai/glm-4.5-air:free`.
@@ -8,10 +15,8 @@ This analysis documents a multi-turn conversation executed with the Context Expl
 
 ## Conversation Evidence
 
-<p align="center">
-  <img src="media/1.png" alt="Context Explorer Example 1" width="49%" />
-  <img src="media/2.png" alt="Context Explorer Example 2" width="49%" />
-</p>
+![](media/1.png){ width=45% }
+![](media/2.png){ width=45% }
 
 ## Messages Array Growth
 
@@ -158,11 +163,13 @@ Build a single-file FastAPI server that exposes an OpenAI-compatible API for a l
 
 Important context:
 - You can read my existing reference implementation at: S1/simple-qwen3.py
-- Use that file as the source of truth for how I currently load the model, apply the chat template, and generate text
+- Use that file as the source of truth for how I currently load the model, apply the chat template, 
+and generate text
 - Reuse the same model setup approach unless there is a strong reason to change it
 
 What I need:
-Create exactly one Python file, named app.py, that implements an OpenAI-compatible server for my local model.
+Create exactly one Python file, named app.py, that implements an OpenAI-compatible server for my 
+local model.
 
 Requirements:
 1. Expose GET /v1/models
@@ -226,7 +233,8 @@ Requirements:
 
 8. Assumptions
    - No API key validation needed
-   - The server should work as a drop-in replacement for OpenAI-compatible tooling like curl or the openai Python client
+   - The server should work as a drop-in replacement for OpenAI-compatible tooling like curl or 
+   the openai Python client
    - Use reasonable defaults for generation if fields are missing
    - Map max_tokens to max_new_tokens
 
@@ -332,7 +340,8 @@ The prompt is the following:
 Build a single-file frontend chat UI that can talk to my local OpenAI-compatible API server.
 
 What I need:
-Create exactly one file, named index.html, containing the full frontend implementation (HTML, CSS, and JavaScript in one file).
+Create exactly one file, named index.html, containing the full frontend implementation 
+(HTML, CSS, and JavaScript in one file).
 
 Context:
 - My backend is an OpenAI-compatible server running locally
@@ -381,7 +390,8 @@ Requirements:
    - Support both non-streaming and streaming mode
 
 4. Streaming support
-   - When streaming is enabled, parse Server-Sent Events from the response body manually in JavaScript
+   - When streaming is enabled, parse Server-Sent Events from the response body manually
+    in JavaScript
    - Handle lines formatted like:
      data: {json}
 
@@ -405,7 +415,8 @@ Requirements:
    - Show friendly error messages in the UI
    - Allow clearing conversation history
    - Start with a short default system prompt or support an optional system prompt field
-   - Store base URL, selected model, streaming preference, and maybe chat history in localStorage
+   - Store base URL, selected model, streaming preference, and maybe chat history in 
+   localStorage
 
 7. Robustness
    - Handle network failures cleanly
