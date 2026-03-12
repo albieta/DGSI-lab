@@ -16,6 +16,7 @@ venv/
 env/
 ENV/
 S2/.env
+S3/function-calling/.env
 
 # Tool caches
 .pytest_cache/
