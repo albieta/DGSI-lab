@@ -17,6 +17,7 @@ env/
 ENV/
 S2/.env
 S3/function-calling/.env
+S3/math-solver/.env
 
 # Tool caches
 .pytest_cache/
