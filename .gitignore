@@ -15,6 +15,7 @@ pip-wheel-metadata/
 venv/
 env/
 ENV/
+*.env
 S2/.env
 S3/function-calling/.env
 S3/math-solver/.env
