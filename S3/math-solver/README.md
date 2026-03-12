@@ -5,9 +5,9 @@ Educational command-line math solver using OpenAI tool calling plus Python math 
 ### `.env`
 
 ```env
-OPENAI_API_KEY=your_api_key_here
-OPENAI_API_ENDPOINT=https://api.openai.com/v1
-MODEL=gpt-4.1-mini
+OPENAI_API_KEY=...
+OPENAI_API_ENDPOINT=...
+MODEL=...
 ```
 
 `OPENAI_API_ENDPOINT` is optional. Leave it out if you want the default OpenAI endpoint.
@@ -18,22 +18,10 @@ MODEL=gpt-4.1-mini
 uv sync
 ```
 
-Or:
-
-```bash
-uv add openai python-dotenv sympy matplotlib numpy rich
-```
-
 ### Run
 
 ```bash
-python3 math_solver.py
-```
-
-You can also run:
-
-```bash
-python3 main.py
+uv run python math_solver.py
 ```
 
 ### Tool-calling flow
