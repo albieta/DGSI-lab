@@ -1,5 +1,20 @@
 # Week 3 Report: Function Calling, Tools, and LLMs That Can Act
 
+## Code Submission
+
+The code for this submission is in this GitHub repository:
+<https://github.com/albieta/DGSI-lab/tree/main/S3>
+
+The main Python file for the math solver is `math_solver.py`.
+
+To run it:
+
+```bash
+cd math-solver
+uv sync
+uv run python math_solver.py
+```
+
 ## 1. Three Little Pigs Demo Test
 
 **Configuration**
@@ -42,13 +57,23 @@ The LLM itself **cannot** execute any code or perform any actions directly. It i
 ## 3. Math Solver Design
 
 **Our strategy**
-We approached the task in two steps. First, we asked ChatGPT to help us write a complete implementation prompt that clearly specified the architecture, required libraries, tool-calling behavior, supported math tasks, and expected CLI behavior. Then we used that prompt to generate the initial version of the math solver, reviewed the produced files, and tested the resulting functions locally.
+We approached the task in two steps. First, we asked ChatGPT to help us
+write a complete implementation prompt that clearly specified the
+architecture, required libraries, tool-calling behavior, supported math
+tasks, and expected CLI behavior. Then we used that prompt to generate
+the initial version of the math solver, reviewed the produced files, and
+tested the resulting functions locally.
 
 **Prompt we used to generate the math solver**
 ```text
-Build a complete Python CLI application called `math_solver.py` that follows the same API credential and endpoint pattern as my existing Three Little Pigs function-calling demo, but for a different use case: a small educational math problem solver for secondary-school students.
+Build a complete Python CLI application called `math_solver.py`
+that follows the same API credential and endpoint pattern as my
+existing Three Little Pigs function-calling demo, but for a
+different use case: a small educational math problem solver for
+secondary-school students.
 
-I want clean, understandable, well-structured code split into multiple functions instead of one huge script.
+I want clean, understandable, well-structured code split into multiple 
+functions instead of one huge script.
 
 Context and constraints:
 - Use Python.
@@ -58,11 +83,13 @@ Context and constraints:
   - `OPENAI_API_KEY`
   - `OPENAI_API_ENDPOINT` (optional custom base URL)
   - `MODEL` with default fallback like `gpt-4.1-mini`
-- The app should accept a math problem from the user in natural language.
+- The app should accept a math problem from the user in
+  natural language.
 - It must use LLM function calling / tools.
 - The model must not guess calculations when a tool should be used.
 - Real math work must be performed in Python tools.
-- It must be able to generate at least one `.png` plot when appropriate.
+- It must be able to generate at least one `.png` plot when
+  appropriate.
 - It must return a clear final explanation for the user.
 - It should handle some invalid input gracefully without crashing.
 
@@ -77,7 +104,8 @@ Supported example requests:
 Requirements:
 1. Read API key, endpoint, and model from `.env`
 2. Use the same client initialization pattern as my demo
-3. Accept a user math problem in natural language from the terminal
+3. Accept a user math problem in natural language from the
+   terminal
 4. Provide at least 4 math tools via function calling
 5. Execute chosen tools in Python
 6. Return a final answer in clear student-friendly language
@@ -85,7 +113,8 @@ Requirements:
 8. Handle invalid input without crashing
 9. Separate logic into multiple functions
 10. Show tool calls in the terminal so it is easy to follow
-11. Save plots into a `plots/` folder with meaningful unique filenames
+11. Save plots into a `plots/` folder with meaningful unique
+    filenames
 
 Use these libraries:
 - `openai`
@@ -99,7 +128,8 @@ You may also use:
 - `numpy`
 - `rich`
 
-Please implement the app with a structure like this inside one file unless a second helper file is truly necessary:
+Please implement the app with a structure like this inside one file
+unless a second helper file is truly necessary:
 - configuration loading
 - OpenAI client initialization
 - tool schema definitions
@@ -120,7 +150,8 @@ Implement at least these tools:
    - Return exact form when possible and numeric approximation when useful
 
 2. `solve_equation(equation: str) -> str`
-   - Solve one-variable equations like `2x + 5 = 17` or `x^2 - 5x + 6 = 0`
+   - Solve one-variable equations like `2x + 5 = 17`
+     or `x^2 - 5x + 6 = 0`
    - Use SymPy
    - Return solutions clearly
 
@@ -129,26 +160,34 @@ Implement at least these tools:
    - Use SymPy
 
 4. `analyze_quadratic(expression: str) -> str`
-   - For expressions like `y = x^2 - 6x + 5` or `x^2 - 6x + 5`
+   - For expressions like `y = x^2 - 6x + 5`
+     or `x^2 - 6x + 5`
    - Return vertex, axis of symmetry, and roots if available
 
-5. `plot_function(expression: str, x_min: float, x_max: float, output_file: str | None = None) -> str`
+5. `plot_function(expression: str, x_min: float, x_max: float,
+   output_file: str | None = None) -> str`
    - Generate a `.png` plot using matplotlib
    - Save it to `plots/`
    - Support expressions like `y = x^2 - 4x + 3`
    - Return the saved file path and a short description
 
 Important behavior for the LLM system prompt:
-- The assistant is a helpful educational math tutor for high-school students.
+- The assistant is a helpful educational math tutor for
+  high-school students.
 - It should explain clearly and step by step.
-- It must use tools for arithmetic, algebra, solving, factoring, and plotting instead of guessing.
-- It should only answer directly without tools for very minor conversational text.
-- If plotting is requested or useful for a quadratic graph question, it should call the plotting tool.
-- After tool results are returned, it should give a concise, student-friendly final explanation.
+- It must use tools for arithmetic, algebra, solving,
+  factoring, and plotting instead of guessing.
+- It should only answer directly without tools for very minor
+  conversational text.
+- If plotting is requested or useful for a quadratic graph
+  question, it should call the plotting tool.
+- After tool results are returned, it should give a concise,
+  student-friendly final explanation.
 
 Implementation details:
 - Use OpenAI chat completions with `tools=[...]`.
-- Detect and execute tool calls in a loop until the model returns a normal final answer.
+- Detect and execute tool calls in a loop until the model returns
+  a normal final answer.
 - Print tool calls and tool results in the terminal.
 - Include a clean `SYSTEM_PROMPT`.
 - Include robust parsing helpers for math text:
@@ -156,12 +195,14 @@ Implementation details:
   - Handle implicit `y = ...` when plotting
   - Handle equations with `=`
   - Use SymPy parsing carefully
-- Use `sympy.sympify`, `symbols`, `Eq`, `solve`, `factor`, and related utilities where appropriate.
+- Use `sympy.sympify`, `symbols`, `Eq`, `solve`, `factor`,
+  and related utilities where appropriate.
 - For plotting:
   - Use numpy sampling over the given x-range
   - Use matplotlib to save a `.png`
   - Mark the vertex on the graph when the expression is quadratic, if easy to do
-- Validate x range for plotting and return a readable error if invalid.
+- Validate x range for plotting and return a readable error if
+  invalid.
 - Create `plots/` automatically if it does not exist.
 - Use meaningful plot filenames, e.g. `quadratic_plot_<short_uuid>.png`
 
@@ -175,7 +216,8 @@ Output format:
 - Return the full code for the application.
 - Also include a sample `.env` block.
 - Also include a short `requirements.txt` or `uv add ...` line.
-- Also include a brief explanation of how the tool-calling flow works in this code.
+- Also include a brief explanation of how the tool-calling flow
+  works in this code.
 
 Please model the coding style after my existing demo:
 - readable sections
@@ -189,7 +231,7 @@ But adapt it fully to the math-solver use case rather than the Three Little Pigs
 ```
 
 **Files that were modified**
-![Modified files screenshot](media/1.png)
+![](media/1.png){ width=45% }
 
 **Description of Chosen Tools**
 *   `evaluate_expression(expression)`: parses arithmetic or symbolic input with SymPy, simplifies it, and returns both exact form and a decimal approximation when useful.
@@ -224,7 +266,13 @@ def solve_with_tools(user_problem: str) -> str:
         messages.append({"role": "assistant", "content": final_answer})
         return final_answer
 ```
-This is the core orchestration loop. The model first receives the student's prompt plus the JSON tool schemas. If it returns `tool_calls`, the host Python program parses the function name and arguments, executes the matching local function from `tool_registry`, appends the tool result back into the conversation, and asks the model for a final explanation. This makes the LLM an orchestrator, not the calculator itself.
+This is the core orchestration loop. The model first receives the
+student's prompt plus the JSON tool schemas. If it returns
+`tool_calls`, the host Python program parses the function name and
+arguments, executes the matching local function from
+`tool_registry`, appends the tool result back into the
+conversation, and asks the model for a final explanation. This
+makes the LLM an orchestrator, not the calculator itself.
 
 ## 4. Testing Evidence
 
@@ -241,17 +289,45 @@ This is the core orchestration loop. The model first receives the student's prom
     Result from the solver: saved `quadratic_plot_933583cd.png`
 
 **Successful Plot**
-![Plot of Parabola](math-solver/plots/quadratic_plot_933583cd.png)
+![](math-solver/plots/quadratic_plot_933583cd.png){ width=58% }
 
 **Failure Case Handling**
-We tested two failure cases locally. First, we passed `2x + 5` into the equation solver without an equals sign, and the tool returned `The equation must include '='.` Second, we tried an invalid expression, `hello + 2`, and the evaluator returned `Unsupported text in expression: hello`. These cases are handled directly by the implemented validation and `try/except` blocks, so the program returns readable error messages instead of crashing.
+We tested two failure cases locally. First, we passed `2x + 5`
+into the equation solver without an equals sign, and the tool
+returned `The equation must include '='.` Second, we tried an
+invalid expression, `hello + 2`, and the evaluator returned
+`Unsupported text in expression: hello`. These cases are handled
+directly by the implemented validation and `try/except` blocks,
+so the program returns readable error messages instead of crashing.
 
 ## 5. Reflection
 
-*   **What did the model do well?** The design is strong at separating responsibilities. The model can interpret a natural-language request like "What is the vertex..." or "Plot..." and route it to the correct tool, while SymPy and matplotlib handle the exact math and plotting. This is the right use of an LLM: understanding intent and producing the final explanation.
-*   **Where did it choose tools badly or fail?** The biggest remaining risk is not arithmetic accuracy inside the tools, but mismatches between user wording and tool arguments. If the model sends malformed math text or chooses a slightly wrong tool, SymPy parsing can fail. The code handles that safely, but the user may still need to rephrase the question.
-*   **What did we learn about using LLMs as orchestrators rather than calculators?** We learned that function calling is most useful when the LLM is treated as a controller. The model is good at deciding *what kind of operation is needed*, but the exact computation should be delegated to deterministic software. That gives both flexibility in understanding natural language and reliability in the actual result.
-*   **One limitation we noticed:** the final explanation is still generated by the model after the tool call. If the tool only returns final values and not full working steps, the model may invent intermediate reasoning when explaining the answer. A stronger next version would have the tools return structured intermediate steps as well as the final result.
+*   **What did the model do well?** The design is strong at
+    separating responsibilities. The model can interpret a
+    natural-language request like "What is the vertex..." or
+    "Plot..." and route it to the correct tool, while SymPy and
+    matplotlib handle the exact math and plotting. This is the
+    right use of an LLM: understanding intent and producing the
+    final explanation.
+*   **Where did it choose tools badly or fail?** The biggest
+    remaining risk is not arithmetic accuracy inside the tools,
+    but mismatches between user wording and tool arguments. If
+    the model sends malformed math text or chooses a slightly
+    wrong tool, SymPy parsing can fail. The code handles that
+    safely, but the user may still need to rephrase the question.
+*   **What did we learn about using LLMs as orchestrators rather
+    than calculators?** We learned that function calling is most
+    useful when the LLM is treated as a controller. The model is
+    good at deciding *what kind of operation is needed*, but the
+    exact computation should be delegated to deterministic
+    software. That gives both flexibility in understanding
+    natural language and reliability in the actual result.
+*   **One limitation we noticed:** the final explanation is still
+    generated by the model after the tool call. If the tool only
+    returns final values and not full working steps, the model
+    may invent intermediate reasoning when explaining the answer.
+    A stronger next version would have the tools return
+    structured intermediate steps as well as the final result.
 
 ---
 
