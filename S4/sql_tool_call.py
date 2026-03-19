@@ -11,12 +11,20 @@ from openai import OpenAI
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "database.db"
-PROMPT = "Download the content from https://jsonplaceholder.typicode.com/users"
+PROMPT = (
+    "Fetch https://jsonplaceholder.typicode.com/users and store the id, name, email, "
+    "and city of every user in a SQLite table called users. "
+    "Show me the final contents of the table."
+)
 SYSTEM_PROMPT = (
     "You are a careful assistant that can use SQL and wget tools. "
     "Use execute_sql for database work. "
     "Use wget when the user asks to download content from a URL. "
-    "Do not combine CREATE and INSERT into a single tool call."
+    "For this task, fetch the JSON first, then create the users table, then insert the rows, "
+    "then run a final SELECT query to show the stored data. "
+    "Use exactly one SQL statement per execute_sql tool call. "
+    "Do not combine CREATE and INSERT into a single tool call. "
+    "Insert one user per INSERT statement so the sequence is easy to follow. "
     "If a task needs multiple tool calls, do them one at a time in sequence. "
     "After tool work is finished, provide a short final answer."
 )
@@ -50,6 +58,12 @@ def execute_sql(statement: str) -> str:
         return f"SQLite error: {error}"
 
     return f"SQL executed successfully: {statement}"
+
+
+def reset_demo_table() -> None:
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        connection.execute("DROP TABLE IF EXISTS users")
+        connection.commit()
 
 
 def run_wget(url: str) -> str:
@@ -125,13 +139,17 @@ def execute_tool(tool_name: str, arguments: dict[str, str]) -> str:
     return f"Unknown tool: {tool_name}"
 
 
-def run_conversation_loop(client: OpenAI, model: str) -> str:
+def run_conversation_loop(client: OpenAI, model: str) -> tuple[str, int]:
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": PROMPT},
     ]
+    iteration_count = 0
 
     while True:
+        iteration_count += 1
+        print(f"\n=== Loop iteration {iteration_count} ===")
+
         response = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -143,7 +161,7 @@ def run_conversation_loop(client: OpenAI, model: str) -> str:
         messages.append(message.model_dump(exclude_none=True))
 
         if not message.tool_calls:
-            return message.content or "Model returned no final text."
+            return message.content or "Model returned no final text.", iteration_count
 
         for index, tool_call in enumerate(message.tool_calls, start=1):
             print(f"\nTool call {index}:")
@@ -166,8 +184,10 @@ def run_conversation_loop(client: OpenAI, model: str) -> str:
 
 def main() -> None:
     client, model = load_config()
+    reset_demo_table()
 
-    final_answer = run_conversation_loop(client, model)
+    final_answer, iteration_count = run_conversation_loop(client, model)
+    print(f"\nTotal loop iterations: {iteration_count}")
     print("\nFinal answer:")
     print(final_answer)
 
