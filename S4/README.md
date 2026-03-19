@@ -822,6 +822,327 @@ The table now contains: `[[1, "Alice"]]`
 
 ** Compare results between qwen3.5-122b-a10b and qwen2.5-vl-72b-instruct. Which model worked better? Where did the smaller model struggle? **
 
+Després de fer el canvi de model, hem tornat a executar el nostre programa amb el mateix prompt i hem obtingut el següent output fallit:
+
+````
+(dgsi-lab) vscode ➜ /workspaces/DGSI-lab (main) $ /workspaces/DGSI-lab/.venv/bin/python /workspaces/DGSI-lab/S4/sql_tool_call.py
+
+=== Loop iteration 1 ===
+
+Tool call 1:
+{
+  "id": "call_4cccca5cb6414134a9c015",
+  "function": {
+    "arguments": " {\"url\": \"https://jsonplaceholder.typicode.com/users\"}",
+    "name": "wget"
+  },
+  "type": "function",
+  "index": 0
+}
+
+Proposed wget command:
+wget -qO- https://jsonplaceholder.typicode.com/users
+Approve this command? [y/N]: y
+Execution result:
+[
+  {
+    "id": 1,
+    "name": "Leanne Graham",
+    "username": "Bret",
+    "email": "Sincere@april.biz",
+    "address": {
+      "street": "Kulas Light",
+      "suite": "Apt. 556",
+      "city": "Gwenborough",
+      "zipcode": "92998-3874",
+      "geo": {
+        "lat": "-37.3159",
+        "lng": "81.1496"
+      }
+    },
+    "phone": "1-770-736-8031 x56442",
+    "website": "hildegard.org",
+    "company": {
+      "name": "Romaguera-Crona",
+      "catchPhrase": "Multi-layered client-server neural-net",
+      "bs": "harness real-time e-markets"
+    }
+  },
+  {
+    "id": 2,
+    "name": "Ervin Howell",
+    "username": "Antonette",
+    "email": "Shanna@melissa.tv",
+    "address": {
+      "street": "Victor Plains",
+      "suite": "Suite 879",
+      "city": "Wisokyburgh",
+      "zipcode": "90566-7771",
+      "geo": {
+        "lat": "-43.9509",
+        "lng": "-34.4618"
+      }
+    },
+    "phone": "010-692-6593 x09125",
+    "website": "anastasia.net",
+    "company": {
+      "name": "Deckow-Crist",
+      "catchPhrase": "Proactive didactic contingency",
+      "bs": "synergize scalable supply-chains"
+    }
+  },
+  {
+    "id": 3,
+    "name": "Clementine Bauch",
+    "username": "Samantha",
+    "email": "Nathan@yesenia.net",
+    "address": {
+      "street": "Douglas Extension",
+      "suite": "Suite 847",
+      "city": "McKenziehaven",
+      "zipcode": "59590-4157",
+      "geo": {
+        "lat": "-68.6102",
+        "lng": "-47.0653"
+      }
+    },
+    "phone": "1-463-123-4447",
+    "website": "ramiro.info",
+    "company": {
+      "name": "Romaguera-Jacobson",
+      "catchPhrase": "Face to face bifurcated interface",
+      "bs": "e-enable strategic applications"
+    }
+  },
+  {
+    "id": 4,
+    "name": "Patricia Lebsack",
+    "username": "Karianne",
+    "email": "Julianne.OConner@kory.org",
+    "address": {
+      "street": "Hoeger Mall",
+      "suite": "Apt. 692",
+      "city": "South Elvis",
+      "zipcode": "53919-4257",
+      "geo": {
+        "lat": "29.4572",
+        "lng": "-164.2990"
+      }
+    },
+    "phone": "493-170-9623 x156",
+    "website": "kale.biz",
+    "company": {
+      "name": "Robel-Corkery",
+      "catchPhrase": "Multi-tiered zero tolerance productivity",
+      "bs": "transition cutting-edge web services"
+    }
+  },
+  {
+    "id": 5,
+    "name": "Chelsey Dietrich",
+    "username": "Kamren",
+    "email": "Lucio_Hettinger@annie.ca",
+    "address": {
+      "street": "Skiles Walks",
+      "suite": "Suite 351",
+      "city": "Roscoeview",
+      "zipcode": "33263",
+      "geo": {
+        "lat": "-31.8129",
+        "lng": "62.5342"
+      }
+    },
+    "phone": "(254)954-1289",
+    "website": "demarco.info",
+    "company": {
+      "name": "Keebler LLC",
+      "catchPhrase": "User-centric fault-tolerant solution",
+      "bs": "revolutionize end-to-end systems"
+    }
+  },
+  {
+    "id": 6,
+    "name": "Mrs. Dennis Schulist",
+    "username": "Leopoldo_Corkery",
+    "email": "Karley_Dach@jasper.info",
+    "address": {
+      "street": "Norberto Crossing",
+      "suite": "Apt. 950",
+      "city": "South Christy",
+      "zipcode": "23505-1337",
+      "geo": {
+        "lat": "-71.4197",
+        "lng": "71.7478"
+      }
+    },
+    "phone": "1-477-935-8478 x6430",
+    "website": "ola.org",
+    "company": {
+      "name": "Considine-Lockman",
+      "catchPhrase": "Synchronised bottom-line interface",
+      "bs": "e-enable innovative applications"
+    }
+  },
+  {
+    "id": 7,
+    "name": "Kurtis Weissnat",
+    "username": "Elwyn.Skiles",
+    "email": "Telly.Hoeger@billy.biz",
+    "address": {
+      "street": "Rex Trail",
+      "suite": "Suite 280",
+      "city": "Howemouth",
+      "zipcode": "58804-1099",
+      "geo": {
+        "lat": "24.8918",
+        "lng": "21.8984"
+      }
+    },
+    "phone": "210.067.6132",
+    "website": "elvis.io",
+    "company": {
+      "name": "Johns Group",
+      "catchPhrase": "Configurable multimedia task-force",
+      "bs": "generate enterprise e-tailers"
+    }
+  },
+  {
+    "id": 8,
+    "name": "Nicholas Runolfsdottir V",
+    "username": "Maxime_Nienow",
+    "email": "Sherwood@rosamond.me",
+    "address": {
+      "street": "Ellsworth Summit",
+      "suite": "Suite 729",
+      "city": "Aliyaview",
+      "zipcode": "45169",
+      "geo": {
+        "lat": "-14.3990",
+        "lng": "-120.7677"
+      }
+    },
+    "phone": "586.493.6943 x140",
+    "website": "jacynthe.com",
+    "company": {
+      "name": "Abernathy Group",
+      "catchPhrase": "Implemented secondary concept",
+      "bs": "e-enable extensible e-tailers"
+    }
+  },
+  {
+    "id": 9,
+    "name": "Glenna Reichert",
+    "username": "Delphine",
+    "email": "Chaim_McDermott@dana.io",
+    "address": {
+      "street": "Dayna Park",
+      "suite": "Suite 449",
+      "city": "Bartholomebury",
+      "zipcode": "76495-3109",
+      "geo": {
+        "lat": "24.6463",
+        "lng": "-168.8889"
+      }
+    },
+    "phone": "(775)976-6794 x41206",
+    "website": "conrad.com",
+    "company": {
+      "name": "Yost and Sons",
+      "catchPhrase": "Switchable contextually-based project",
+      "bs": "aggregate real-time technologies"
+    }
+  },
+  {
+    "id": 10,
+    "name": "Clementina DuBuque",
+    "username": "Moriah.Stanton",
+    "email": "Rey.Padberg@karina.biz",
+    "address": {
+      "street": "Kattie Turnpike",
+      "suite": "Suite 198",
+      "city": "Lebsackbury",
+      "zipcode": "31428-2261",
+      "geo": {
+        "lat": "-38.2386",
+        "lng": "57.2232"
+      }
+    },
+    "phone": "024-648-3804",
+    "website": "ambrose.net",
+    "company": {
+      "name": "Hoeger LLC",
+      "catchPhrase": "Centralized empowering task-force",
+      "bs": "target end-to-end models"
+    }
+  }
+]
+
+=== Loop iteration 2 ===
+
+Tool call 1:
+{
+  "id": "call_43335490838b46fa8398df",
+  "function": {
+    "arguments": " {\"statement\": \"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, city TEXT)\"}",
+    "name": "execute_sql"
+  },
+  "type": "function",
+  "index": 0
+}
+Execution result:
+SQL executed successfully: CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, city TEXT)
+
+=== Loop iteration 3 ===
+
+Tool call 1:
+{
+  "id": "call_c24b30dce07a480ead9600",
+  "function": {
+    "arguments": " {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (1, 'Leanne Graham', 'Sincere@april.biz', 'Gwenborough')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (2, 'Ervin Howell', 'Shanna@melissa.tv', 'Wisokyburgh')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (3, 'Clementine Bauch', 'Nathan@yesenia.net', 'McKenziehaven')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (4, 'Patricia Lebsack', 'Julianne.OConner@kory.org', 'South Elvis')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (5, 'Chelsey Dietrich', 'Lucio_Hettinger@annie.ca', 'Roscoeview')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (6, 'Mrs. Dennis Schulist', 'Karley_Dach@jasper.info', 'South Christy')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (7, 'Kurtis Weissnat', 'Telly.Hoeger@billy.biz', 'Howemouth')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (8, 'Nicholas Runolfsdottir V', 'Sherwood@rosamond.me', 'Aliyaview')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (9, 'Glenna Reichert', 'Chaim_McDermott@dana.io', 'Bartholomebury')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"INSERT INTO users (id, name, email, city) VALUES (10, 'Clementina DuBuque', 'Rey.Padberg@karina.biz', 'Lebsackbury')\"}\n\u273fFUNCTION\u273f: execute_sql\n\u273fARGS\u273f: {\"statement\": \"SELECT * FROM users\"}",
+    "name": "execute_sql"
+  },
+  "type": "function",
+  "index": 0
+}
+Traceback (most recent call last):
+  File "/workspaces/DGSI-lab/S4/sql_tool_call.py", line 196, in <module>
+    main()
+    ~~~~^^
+  File "/workspaces/DGSI-lab/S4/sql_tool_call.py", line 189, in main
+    final_answer, iteration_count = run_conversation_loop(client, model)
+                                    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/workspaces/DGSI-lab/S4/sql_tool_call.py", line 170, in run_conversation_loop
+    arguments = json.loads(tool_call.function.arguments)
+  File "/home/vscode/.local/share/uv/python/cpython-3.13.12-linux-aarch64-gnu/lib/python3.13/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/home/vscode/.local/share/uv/python/cpython-3.13.12-linux-aarch64-gnu/lib/python3.13/json/decoder.py", line 348, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 2 column 1 (char 124)
+```
+
+El que podem observar és que el programa ha "petat" durant la tercera iteració del bucle a causa d'un error de format de dades. Quan l'script de Python intenta executar la línia 'arguments = json.loads(tool_call.function.arguments)', espera trobar un objecte JSON vàlid i net, de l'estil:
+
+```
+{"statement": "INSERT INTO users (id, name, email, city) VALUES (1, 'Leanne Graham', ...)"}
+````
+
+No obstant això, el model ha intentat fer múltiples insercions de cop i, en lloc de generar una llista de tool_calls vàlida segons el protocol que hem definit, ha barrejat el JSON amb text pla, generant això dins de l'string arguments:
+
+```
+{"statement": "INSERT ..."}
+✿FUNCTION✿: execute_sql
+✿ARGS✿: {"statement": "INSERT ..."}
+✿FUNCTION✿: execute_sql
+✿ARGS✿: {"statement": "INSERT ..."}
+...
+```
+
+Aquests símbols (✿FUNCTION✿, ✿ARGS✿), amb els símbols de floretes incloses, són "special tokens" o formats de plantilla interns amb els quals el model va ser entrenat. En lloc de traduir internament la seva voluntat de cridar múltiples funcions cap al format JSON net que requereix l'API, el model s'ha confós (ha "al·lucinat") i ha començat a vomitar els seus tokens interns en brut. Com que això no forma part de cap estructura JSON vàlida, la funció json.loads() llença l'error Extra data: line 2 column 1 i el programa s'atura de cop.
+
+Per tant, la mida del model importa molt en aquest cas. El model més gran (qwen3.5-122b-a10b) va ser capaç de generar un JSON net i vàlid que el nostre programa podia processar, mentre que el model més petit (qwen2.5-vl-72b-instruct) es va confondre i va generar una resposta que no seguia el format esperat, causant un error de decodificació JSON.
+
+
 ---
 
 ## GitHub Repository
