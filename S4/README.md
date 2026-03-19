@@ -24,16 +24,45 @@
 ### Tool Schema
 
 ```json
+{
+     "type": "function",
+     "function": {
+          "name": "execute_sql",
+          "description": "Run a SQL statement against the local SQLite database.",
+          "parameters": {
+               "type": "object",
+               "properties": {
+               "statement": {
+                    "type": "string",
+                    "description": "The SQL statement to execute.",
+               }
+               },
+               "required": ["statement"],
+               "additionalProperties": False,
+          },
+     },
+}
 ```
 
 ### Code
 
 ```python
+def execute_sql(statement: str) -> str:
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        cursor = connection.cursor()
+        cursor.execute(statement)
+        connection.commit()
+
+        if cursor.description:
+            rows = cursor.fetchall()
+            return json.dumps(rows)
+
+    return f"SQL executed successfully: {statement}"
 ```
 
 ### Output / Proof
 
-<!-- Screenshot or terminal output showing the table was created. -->
+![](./media/1.png)
 
 ---
 
