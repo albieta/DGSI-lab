@@ -1,0 +1,17 @@
+[project]
+name = "s4-sql-tool-call"
+version = "0.1.0"
+description = "Week 4 Step 1: OpenAI tool calling with SQLite"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.109.1",
+    "python-dotenv>=1.1.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = false
