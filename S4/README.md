@@ -665,9 +665,142 @@ sqlite3 database.db "SELECT * FROM users;"
 
 ** Show the terminal output and how the program handled it without crashing. **
 
+```
+=== Loop iteration 1 ===
+
+Tool call 1:
+{
+  "id": "call_f7042541a18142d59657cf89",
+  "function": {
+    "arguments": "{\"url\": \"https://thisdomaindoesnotexist.fake/data\"}",
+    "name": "wget"
+  },
+  "type": "function",
+  "index": 0
+}
+
+Proposed wget command:
+wget -qO- https://thisdomaindoesnotexist.fake/data
+Approve this command? [y/N]: y
+Execution result:
+wget failed: wget returned a non-zero exit code.
+
+=== Loop iteration 2 ===
+
+Tool call 1:
+{
+  "id": "call_76e02c060a984db684725fba",
+  "function": {
+    "arguments": "{\"statement\": \"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, city TEXT)\"}",
+    "name": "execute_sql"
+  },
+  "type": "function",
+  "index": 0
+}
+Execution result:
+SQL executed successfully: CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT, city TEXT)
+
+=== Loop iteration 3 ===
+
+Tool call 1:
+{
+  "id": "call_abbee9a83efa4f50a33c2fae",
+  "function": {
+    "arguments": "{\"statement\": \"SELECT * FROM users\"}",
+    "name": "execute_sql"
+  },
+  "type": "function",
+  "index": 0
+}
+Execution result:
+[]
+
+=== Loop iteration 4 ===
+
+Total loop iterations: 4
+
+Final answer:
+I was unable to complete the full task as requested:
+
+1. **Fetch failed**: The URL `https://thisdomaindoesnotexist.fake/data` could not be downloaded (the domain does not exist)
+
+2. **Table created**: I successfully created the `users` table with columns: id, name, email, and city
+
+3. **No data inserted**: Since the JSON file could not be fetched, there was no data to insert into the table
+
+4. **Final contents**: The `users` table is currently empty:
+
+| id | name | email | city |
+|----|------|-------|------|
+| _(empty)_ |
+
+To complete this task successfully, you would need to provide a valid URL that returns JSON data with user information containing id, name, email, and city fields.
+```
+
 ### Error Case 2 — Invalid SQL
 
 ** Show the terminal output and how the program handled it without crashing. **
+
+Hem provat amb el prompt:     "Insert a row into a table called missing_table with id 1 and name Alice."
+
+```
+=== Loop iteration 1 ===
+
+Tool call 1:
+{
+  "id": "call_a3f8b4169c0f47d39ea57d9f",
+  "function": {
+    "arguments": "{\"statement\": \"CREATE TABLE IF NOT EXISTS missing_table (id INTEGER PRIMARY KEY, name TEXT)\"}",
+    "name": "execute_sql"
+  },
+  "type": "function",
+  "index": 0
+}
+Execution result:
+SQL executed successfully: CREATE TABLE IF NOT EXISTS missing_table (id INTEGER PRIMARY KEY, name TEXT)
+
+=== Loop iteration 2 ===
+
+Tool call 1:
+{
+  "id": "call_27c8feb6038b409d871dc1c5",
+  "function": {
+    "arguments": "{\"statement\": \"INSERT INTO missing_table (id, name) VALUES (1, 'Alice')\"}",
+    "name": "execute_sql"
+  },
+  "type": "function",
+  "index": 0
+}
+Execution result:
+SQL executed successfully: INSERT INTO missing_table (id, name) VALUES (1, 'Alice')
+
+=== Loop iteration 3 ===
+
+Tool call 1:
+{
+  "id": "call_188dbdaef8914c3ba8d3dcfe",
+  "function": {
+    "arguments": "{\"statement\": \"SELECT * FROM missing_table\"}",
+    "name": "execute_sql"
+  },
+  "type": "function",
+  "index": 0
+}
+Execution result:
+[[1, "Alice"]]
+
+=== Loop iteration 4 ===
+
+Total loop iterations: 4
+
+Final answer:
+Done! I've successfully:
+1. Created the missing_table with id (INTEGER PRIMARY KEY) and name (TEXT) columns
+2. Inserted a row with id 1 and name 'Alice'
+3. Verified the data is stored correctly
+
+The table now contains: `[[1, "Alice"]]`
+```
 
 ---
 
