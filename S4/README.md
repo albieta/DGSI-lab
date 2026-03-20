@@ -38,10 +38,10 @@ Altres coses que PostgreSQL pot fer i SQLite no és gestionar moltes connexions 
           "parameters": {
                "type": "object",
                "properties": {
-               "statement": {
-                    "type": "string",
-                    "description": "The SQL statement to execute.",
-               }
+                    "statement": {
+                        "type": "string",
+                        "description": "The SQL statement to execute.",
+                    }
                },
                "required": ["statement"],
                "additionalProperties": False,
