@@ -19,9 +19,21 @@ Altres coses que PostgreSQL pot fer i SQLite no és gestionar moltes connexions 
 
 **Explain how subprocess.run() works, what capture_output=True, text=True, and timeout do, whether it is synchronous or asynchronous, and when you would use subprocess.Popen() instead.**
 
+La funcio `subprocess.run()` serveix per executar una comanda del sistema des de Python i esperar que acabi. En el nostre cas, la fem servir per llancar `wget` des del programa i recuperar-ne el resultat. El mes important es que `run()` es una crida sincrona: el programa queda aturat fins que la comanda externa ha acabat. Aixo aqui ens va be, perque volem saber exactament si la descarrega ha anat be o no abans de continuar amb la resta del flux.
+
+L'opcio `capture_output=True` fa que Python capturi tant la sortida estandard (`stdout`) com els errors (`stderr`) en comptes d'imprimir-los directament per terminal. Aixo es util perque despres podem decidir que retornem al model o a l'usuari. L'opcio `text=True` fa que aquestes sortides es retornin com a cadenes de text normals i no com a bytes, de manera que es molt mes comode treballar-hi. Si fessim servir `timeout=5`, per exemple, voldria dir que Python espera com a maxim 5 segons; si la comanda triga mes, llenca una excepcio i aixi evitem que el programa es quedi penjat indefinidament.
+
+Si necessitessim mes control sobre el proces, fariem servir `subprocess.Popen()`. Aquesta altra opcio es mes flexible perque permet deixar el proces executant-se en segon pla, llegir-ne la sortida a poc a poc o interactuar-hi mentre encara esta viu.
+
 ### wget
 
 **Explain what wget does, what the -q and -O - flags mean, and what happens when the URL does not exist or the server is slow.**
+
+`wget` es una eina de linia d'ordres que serveix per descarregar contingut des d'una URL. En aquest lab la fem servir per obtenir el contingut de la resposta HTTP i passar-lo directament al nostre programa. Per aixo la comanda que proposem es `wget -qO- url`.
+
+L'opcio `-q` vol dir `quiet`, es a dir, que amaga la major part dels missatges de progres i deixa la sortida mes neta. L'opcio `-O -` vol dir que la sortida s'escriu a `stdout`; aquest guio final (`-`) indica precisament "envia-ho per la sortida estandard en lloc de guardar-ho en un fitxer". Gracies a aixo, despres podem capturar el resultat amb `subprocess.run()` i retornar-lo com a text.
+
+Si la URL no existeix, el servidor falla o el domini no es pot resoldre, `wget` acaba amb un codi de retorn diferent de zero. En el nostre programa aixo no fa petar res, perque comprovem `result.returncode` i retornem un missatge d'error controlat. Si el servidor es molt lent, la comanda simplement trigara mes a completar-se i, com que `subprocess.run()` es sincrona, el nostre programa tambe esperara mes. Si volguessim limitar aquest temps d'espera, podriem afegir un `timeout`.
 
 ---
 
@@ -122,7 +134,16 @@ def run_conversation_loop(client: OpenAI, model: str) -> str:
 
 ### Stop Condition
 
-** Explain how the program knows when to stop looping. **
+**Explain how the program knows when to stop looping.**
+
+El programa deixa de fer iteracions quan el model ja no retorna cap `tool_call`. Mentre `message.tool_calls` contingui una o mes crides d'eina, el bucle enten que encara queden passos per executar: per exemple crear una taula, inserir files o fer una consulta. En canvi, quan el model respon nomes amb text final i sense cap eina a executar, entra en aquest bloc:
+
+```python
+if not message.tool_calls:
+    return message.content or "Model returned no final text."
+```
+
+Aixo vol dir que el model considera que la feina ja esta acabada i, per tant, el nostre programa surt del `while True` retornant la resposta final. En resum, la condicio d'aturada no la marquem nosaltres amb un comptador fix, sino que depen de si el model continua demanant eines o no.
 
 ---
 
@@ -653,9 +674,9 @@ sqlite3 database.db "SELECT * FROM users;"
 
 ### Number of Loop Iterations
 
-** How many iterations did the loop run? Were you surprised? **
+**How many iterations did the loop run? Were you surprised?**
 
-14 Iterations
+El bucle va fer 14 iteracions en total. D'entrada podia semblar que el model faria menys passos, pero en realitat te força sentit: una iteracio per descarregar les dades, una per crear la taula, deu iteracions separades per inserir cadascun dels 10 usuaris, una altra per fer el `SELECT * FROM users` i una ultima en que ja retorna la resposta final sense eines. Aixo ensenya bastant be que el model no "resol" tota la tasca d'un sol cop, sino que la va descomponent en accions petites i sequencials.
 
 ---
 
@@ -663,7 +684,7 @@ sqlite3 database.db "SELECT * FROM users;"
 
 ### Error Case 1 — Bad URL
 
-** Show the terminal output and how the program handled it without crashing. **
+**Show the terminal output and how the program handled it without crashing.**
 
 ```
 === Loop iteration 1 ===
@@ -737,9 +758,11 @@ I was unable to complete the full task as requested:
 To complete this task successfully, you would need to provide a valid URL that returns JSON data with user information containing id, name, email, and city fields.
 ```
 
+En aquest cas, el mes important es que el programa no ha petat tot i que la descarrega inicial ha fallat. `wget` ha retornat un error controlat, el nostre codi l'ha convertit en text i el model ha pogut continuar la conversa amb aquesta informacio. El resultat final no es util perque la taula queda buida, pero el comportament es correcte: error gestionat, bucle viu i resposta final coherent.
+
 ### Error Case 2 — Invalid SQL
 
-** Show the terminal output and how the program handled it without crashing. **
+**Show the terminal output and how the program handled it without crashing.**
 
 Hem provat amb el prompt:     "Insert a row into a table called missing_table with id 1 and name Alice."
 
@@ -802,25 +825,37 @@ Done! I've successfully:
 The table now contains: `[[1, "Alice"]]`
 ```
 
+Curiosament, aquest cas no ha acabat generant un SQL invalid de veritat. Tot i que el prompt parlava d'inserir en una taula que no existia, el model ha decidit primer crear `missing_table` i despres fer l'`INSERT`, de manera que tot ha funcionat sense errors. Per tant, aquesta prova demostra mes aviat que el model pot anticipar el problema i corregir-lo sol abans que no pas un cas d'error SQL real.
+
 ---
 
 ## Required Questions
 
 1. How does your program know when to stop calling the LLM?
 
+El programa continua cridant el model mentre la resposta contingui `tool_calls`. Quan arriba una resposta sense cap eina, enten que el model ja ha acabat i retorna el text final a l'usuari.
+
 2. What is the role of `tool_call_id` in the message protocol?
+
+El `tool_call_id` serveix per relacionar la resposta d'una eina amb la crida concreta que l'ha originada. Aixo es important sobretot si en una mateixa iteracio hi ha diverses tool calls, perque el model ha de saber quin resultat correspon a cadascuna.
 
 3. Why is user confirmation important for the wget tool but not for `execute_sql`?
 
+La confirmacio d'usuari es important a `wget` perque implica accedir a una URL externa i, per tant, pot tenir implicacions de seguretat o privacitat. En canvi, `execute_sql` nomes treballa contra una base de dades local controlada dins del context del laboratori, aixi que el risc es molt menor i l'execucio pot ser automatica.
+
 4. What happens in the conversation when the user denies a wget command?
 
+Quan l'usuari denega la comanda, la funcio retorna un missatge del tipus `User denied command: ...` en lloc del contingut descarregat. Aquest missatge s'afegeix igualment a la conversa com a resposta de l'eina, de manera que el model veu que la descarrega no s'ha autoritzat i ha de decidir com continuar amb aquesta informacio.
+
 5. How many iterations did the loop run for the full test prompt? Were you surprised?
+
+En la prova completa, el bucle va correr 14 iteracions. Si, una mica, pero tambe es logic despres de mirar-ho be, perque el model va anar fent una accio petita per iteracio en lloc d'agrupar totes les insercions en una sola crida.
 
 ---
 
 ## Extra Challenge: Does the Model Matter? *(optional)*
 
-** Compare results between qwen3.5-122b-a10b and qwen2.5-vl-72b-instruct. Which model worked better? Where did the smaller model struggle? **
+**Compare results between qwen3.5-122b-a10b and qwen2.5-vl-72b-instruct. Which model worked better? Where did the smaller model struggle?**
 
 Després de fer el canvi de model, hem tornat a executar el nostre programa amb el mateix prompt i hem obtingut el següent output fallit:
 
