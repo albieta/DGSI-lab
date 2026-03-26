@@ -1,5 +1,29 @@
 # Week 5 — The Hackathon: Vibe Coding a Production Simulator
 
+## Local Project Setup
+
+This folder now includes a minimal `uv` project starter.
+
+Run it with:
+
+```bash
+cd S5
+uv run main.py
+```
+
+If you want to create the same scaffold manually from scratch, these are the core commands:
+
+```bash
+cd S5
+uv init --bare
+```
+
+Then add a `main.py` file and run:
+
+```bash
+uv run main.py
+```
+
 ## What This Week Is
 
 **Summarize in 4-8 lines what Week 5 is about, how it connects to Weeks 1-4, and what the main objective is.**
