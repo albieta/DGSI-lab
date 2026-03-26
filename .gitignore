@@ -39,3 +39,5 @@ htmlcov/
 # Editors / IDEs
 .vscode/
 .idea/
+
+.DS_Store
